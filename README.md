@@ -9,14 +9,14 @@ Extracts this metadata and creates a "Tags" page which lists all tags and all pa
 Install this plugin (it will also install mkdocs if required)
 
 ```shell
-$ pip install git+https://github.com/jldiaz/mkdocs-plugin-tags.git
+$ pip install git+https://github.com/ginsburgnm/mkdocs-plugin-tags.git
 ```
 
 > **Note**. Since this package is in alpha stage, it is not yet available from pypi, so the only way to install it is via git.
 
 > **Additional note**. If you are using `pipenv` you must use the following syntax:
 > ```shell
-> $ pipenv install git+https://github.com/jldiaz/mkdocs-plugin-tags.git#egg=tags-macros-plugin
+> $ pipenv install git+https://github.com/ginsburgnm/mkdocs-plugin-tags.git#egg=tags-macros-plugin
 > ```
 
 Create a new documentation folder:
@@ -108,7 +108,5 @@ plugins:
 
 # TODO
 
-* Remove the requirement of having a `title:` metadata in the YAML header (take the title of the page from other place if absent)
 * Allow for yaml metadata which is not "triple-dash" delimited.
 * Better integration with themes (tested with Material, looks good)
-* Make visible the tags in each page? Currently they are "invisible metadata". The author can provide a jinja2 custom "main" template which renders them from `page.meta.tags`, but perhaps it could be useful that the plugin rewrites the markdown of each page (on page load), to add this metadata as part of the "visible" markdown.
