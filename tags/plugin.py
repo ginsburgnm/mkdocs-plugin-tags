@@ -1,18 +1,20 @@
+#!/usr/bin/env python
+"""
 # --------------------------------------------
 # Main part of the plugin
 #
 # JL Diaz (c) 2019
 # MIT License
 # --------------------------------------------
+"""
 from collections  import defaultdict
 from pathlib import Path
-import os
 import yaml
 import jinja2
 from mkdocs.structure.files import File
-from mkdocs.structure.nav import Section
 from mkdocs.plugins import BasePlugin
 from mkdocs.config.config_options import Type
+from mkdocs.__main__ import log
 
 
 class TagsPlugin(BasePlugin):
@@ -31,13 +33,26 @@ class TagsPlugin(BasePlugin):
 
     def __init__(self):
         self.metadata = []
+        self.tag_dict = None
         self.tags_filename = "tags.md"
         self.tags_folder = "aux"
         self.tags_template = None
 
-    def on_nav(self, nav, config, files):
-        # nav.items.insert(1, nav.items.pop(-1))
-        pass
+    def on_page_markdown(self, markdown, page, config, files):
+        """
+        takes markdown, page, config, and files
+        currently modifies the markdown to add a button to click to get related tag info
+        tag is customizeable by adding css that keys off the class `.button`
+        """
+        if 'tags' in page.meta:
+            swap_mark = ['\n']
+            for tag in page.meta['tags']:
+                swap_mark.append(
+                    f"[{tag}](/tags.html#{tag})" + "{.button}"
+                )
+            swap_mark.append('\n')
+            return f'{" ".join(swap_mark)}{markdown}'
+        return markdown
 
     def on_config(self, config):
         # Re assign the options
@@ -54,10 +69,10 @@ class TagsPlugin(BasePlugin):
 
     def on_files(self, files, config):
         # Scan the list of files to extract tags from meta
-        for f in files:
-            if not f.src_path.endswith(".md"):
+        for fname in files:
+            if not fname.src_path.endswith(".md"):
                 continue
-            self.metadata.append(get_metadata(f.src_path, config["docs_dir"]))
+            self.metadata.append(get_metadata(fname.src_path, config["docs_dir"]))
 
         # Create new file with tags
         self.generate_tags_file()
@@ -91,41 +106,42 @@ class TagsPlugin(BasePlugin):
     def generate_tags_file(self):
         sorted_meta = sorted(self.metadata, key=lambda e: e.get("year", 5000) if e else 0)
         tag_dict = defaultdict(list)
-        for e in sorted_meta:
-            if not e:
+        for meta in sorted_meta:
+            if not meta:
                 continue
-            if "title" not in e:
-                e["title"] = "Untitled"
-            tags = e.get("tags", [])
+            if "title" not in meta:
+                meta["title"] = meta['filename'].split("/")[-1].strip('.md')
+            tags = meta.get("tags", [])
             if tags is not None:
                 for tag in tags:
-                    tag_dict[tag].append(e)
+                    tag_dict[tag].append(meta)
+        self.tag_dict = tag_dict
 
-        t = self.generate_tags_page(tag_dict)
-
-        with open(str(self.tags_folder / self.tags_filename), "w") as f:
-            f.write(t)
+        with open(str(self.tags_folder / self.tags_filename), "w", encoding='utf-8') as fname:
+            fname.write(self.generate_tags_page(tag_dict))
 
 # Helper functions
 
 def get_metadata(name, path):
     # Extract metadata from the yaml at the beginning of the file
-    def extract_yaml(f):
+    def extract_yaml(fname):
         result = []
-        c = 0
-        for line in f:
-            if line.strip() == "---":
-                c +=1
-                continue
-            if c==2:
+        mark_count = 0
+        for line in fname:
+            if line.strip() != "---" and mark_count == 0:
                 break
-            if c==1:
+            if line.strip() == "---":
+                mark_count += 1
+                continue
+            if mark_count == 2:
+                break
+            if mark_count == 1:
                 result.append(line)
         return "".join(result)
 
     filename = Path(path) / Path(name)
-    with filename.open() as f:
-        metadata = extract_yaml(f)
+    with filename.open() as fname:
+        metadata = extract_yaml(fname)
         if metadata:
             meta = yaml.load(metadata, Loader=yaml.FullLoader)
             meta.update(filename=name)
