@@ -121,7 +121,7 @@ def get_metadata(name, path):
     """Get the metadata off of a file"""
     filename = Path(path) / Path(name)
     with filename.open() as fname:
-        match_string = search(r"\A\s*---\n.*\n---", fname.read(), flags=DOTALL | MULTILINE)
+        match_string = search(r"\A\s*---\n.*?\n---", fname.read(), flags=DOTALL | MULTILINE)
         if match_string:
             try:
                 metadata = match_string.group(0).strip('---')
